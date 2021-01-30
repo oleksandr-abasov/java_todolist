@@ -1,11 +1,14 @@
 package com.example.todolist.controller;
 
+import com.example.todolist.converter.TodoConverter;
+import com.example.todolist.dto.TodoDto;
 import com.example.todolist.model.Todo;
 import com.example.todolist.service.TodoService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 public class TodoController {
@@ -17,24 +20,28 @@ public class TodoController {
     }
 
     @GetMapping("todos")
-    public List<Todo> getTodos() {
-        return todoService.findAll();
+    public List<TodoDto> getTodos() {
+        return todoService.findAll()
+                .stream().map(todo -> TodoConverter.modelToDto(todo))
+                .collect(Collectors.toList());
     }
 
     @PostMapping("todos")
-    public Todo createTodo(Todo todo) {
-        return todoService.createOrUpdate(todo);
+    public TodoDto createTodo(@RequestBody TodoDto todoDto) {
+        Todo createdTodo = todoService.createOrUpdate(TodoConverter.dtoToModel(todoDto));
+        return TodoConverter.modelToDto(createdTodo);
     }
 
     @PutMapping("todos/{id}")
-    public Todo updateTodo(@PathVariable int id, Todo todo) {
+    public TodoDto updateTodo(@PathVariable int id, @RequestBody TodoDto todo) {
         Optional<Todo> fetched = todoService.findById(id);
         if (fetched.isPresent()) {
             Todo fetchedTodo = fetched.get();
             fetchedTodo.setTitle(todo.getTitle());
             fetchedTodo.setCompleted(todo.isCompleted());
             fetchedTodo.setOrder(todo.getOrder());
-            return todoService.createOrUpdate(fetchedTodo);
+            Todo updatedTodo = todoService.createOrUpdate(fetchedTodo);
+            return TodoConverter.modelToDto(updatedTodo);
         }
         return null;
     }
